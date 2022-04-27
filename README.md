@@ -57,6 +57,16 @@ CONNECT USB CABLE TO HOST
 // echo $UDC > UDC
 ls /sys/class/udc > UDC
 ```
+## In device
+```bash
+mkdir /dev/ffs-diag
+mount -t functionfs diag /dev/ffs-diag
+```
+Run app with the dev node
+```bash
+./chat_app /dev/ffs-diag 
+```
+
 ## In Host side
 To display all the usb devices connected
 ```bash
