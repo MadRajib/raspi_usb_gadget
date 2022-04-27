@@ -57,3 +57,8 @@ CONNECT USB CABLE TO HOST
 // echo $UDC > UDC
 ls /sys/class/udc > UDC
 ```
+## In Host side
+To display all the usb devices connected
+```bash
+lsusb -v
+```
