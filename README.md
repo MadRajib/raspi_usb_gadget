@@ -72,3 +72,6 @@ To display all the usb devices connected
 ```bash
 lsusb -v
 ```
+
+## Setp by step in device
+
