@@ -382,6 +382,25 @@ int main(int argc, char **argv)
 	}
 
 	/*
+	 * Now we initialize aio setup
+	 */
+	memset(&ctx, 0, sizeof(ctx));
+
+	ret = io_setup(2, &ctx);
+	if (ret < 0) {
+		report_error("Unable to create aio context");
+		goto out;
+	}
+
+	event_fd =  eventfd(0 ,0); 
+	if (event_fd < 0) {
+		report_error("Unable to pen event fd");
+		io_destroy(ctx);
+		goto out;
+	}
+
+
+	/*
 	 * Now we have all required endpoints
 	 * so we can start our communication
 	 */
