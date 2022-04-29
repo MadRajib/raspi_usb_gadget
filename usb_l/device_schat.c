@@ -151,6 +151,15 @@ static const struct {
 		putchar('\n');			\
 	} while (0)
 
+/* Possible states of ffs request */
+enum
+{
+	FFS_REQ_COMPLETED = 0,
+	FFS_REQ_IN_PROGRESS = 1,
+	FFS_REQ_ERROR = 2,
+	FFS_REQ_CANCELLED = 3,
+};
+
 /* Data structure for our message */
 struct message {
 	uint16_t length;
@@ -159,6 +168,61 @@ struct message {
 
 /* One global buffer for sending and receiving */
 struct message M;
+
+struct aio_request
+{
+	struct iocb iocb;
+	unsigned char *buf;
+	ssize_t length;
+	int status;
+	void (*request_complete_cb)(struct aio_request *);
+};
+
+/*alocate memory for a request object*/
+struct aio_request *init_request() {
+	struct aio_request *req;
+	req = malloc(sizeof(struct aio_request));
+	if (!req)
+		goto out;
+	memset(req, 0, sizeof(struct aio_request));
+out:
+	return req;
+}
+
+/*delete the request object*/
+void delete_request(struct aio_request *req) {
+	free(req);
+	req = NULL;
+}
+
+/* fill a request obj with details*/
+void fill_request(struct aio_request *req, int usb_dir, int ep, int event_fd, unsigned char *buf, int length,
+	void (*request_complete_cb)(struct aio_request *) cb) {
+
+	/* aio request wrappers*/
+	if (usb_dir == USB_DIR_IN)
+		io_prep_pwrite(req->iocb, ep, buf, length, 0); // from device to host
+	else
+		io_prep_pread(req->iocb, ep, buf, length, 0);  // from host to device
+
+	io_set_eventfd(iocb, event_fd);
+
+	req->request_complete_cb  = cb;
+	req->buf = buf;
+	req->length =  length;
+	req->status = 0;
+}
+
+int submit_request(io_context_t *ctx, struct aio_request *req) {
+	int ret;
+	
+	req->iocb->u.c.nbytes = req->length;
+
+	ret = io_submit(*ctx, 1, &(req->iocb));
+	if(ret < 0)
+		return ret;
+	req->status = FFS_REQ_IN_PROGRESS;
+}
 
 /* 
  * Prepare fresh ffs instance 
@@ -304,7 +368,7 @@ int handle_ep0(int ep0, int *connected)
 }
 
 /* main chat function */
-void do_chat(int *ep)
+void do_chat(int *ep, io_context_t *ctx, int event_fd)
 {
 	int connected = 0;
 	int len;
@@ -404,7 +468,10 @@ int main(int argc, char **argv)
 	 * Now we have all required endpoints
 	 * so we can start our communication
 	 */
-	do_chat(ep);
+	do_chat(ep, &ctx, event_fd);
+
+	close(event_fd);
+	io_destroy(ctx);
 
 	cleanup_ffs(ep);
 out:
