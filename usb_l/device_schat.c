@@ -251,7 +251,7 @@ out:
 
 }
 
-struct transfer *inti_transfer(int ep, int usb_dir, int event_fd, io_context_t *ctx, void (*cb)(struct aio_request *)) {
+struct transfer *init_transfer(int ep, int usb_dir, int event_fd, io_context_t *ctx, void (*cb)(struct aio_request *)) {
 	struct transfer *transf;
 
 	transf = alloc_transfer();
@@ -410,13 +410,26 @@ int handle_ep0(int ep0, int *connected)
 	return 0;
 }
 
+void in_request_complete_cb(struct aio_request * req) {
+
+}
+
+void out_request_complete_cb(struct aio_request * req) {
+
+}
+
 /* main chat function */
 void do_chat(int *ep, io_context_t *ctx, int event_fd)
 {
+	struct transfer *in_transfer;
+	struct transfer *out_transfer;
 	int connected = 0;
 	int len;
 	char *buf;
 	int ret;
+
+	in_transfer = init_transfer(ep[EP_OUT_IDX], USB_DIR_OUT, event_fd, ctx, in_request_complete_cb);
+	out_transfer = init_transfer(ep[EP_IN_IDX], USB_DIR_IN, event_fd, ctx, out_request_complete_cb);
 
 	printf("Waiting for connection...\n");
 
