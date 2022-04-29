@@ -181,7 +181,7 @@ struct aio_request
 struct transfer {
 	struct aio_request *len_req;
 	struct aio_request *buf_req;
-	struct message msg;
+	struct message message;
 	int in_progress;
 	io_context_t *ctx;
 };
@@ -204,16 +204,15 @@ void delete_request(struct aio_request *req) {
 }
 
 /* fill a request obj with details*/
-void init_request(struct aio_request *req, int usb_dir, int ep, int event_fd, unsigned char *buf, int length,
-	void (*request_complete_cb)(struct aio_request *) cb) {
+void init_request(struct aio_request *req, int usb_dir, int ep, int event_fd, unsigned char *buf, int length, void (*cb)(struct aio_request *)) {
 
 	/* aio request wrappers*/
 	if (usb_dir == USB_DIR_IN)
-		io_prep_pwrite(req->iocb, ep, buf, length, 0); // from device to host
+		io_prep_pwrite(&(req->iocb), ep, buf, length, 0); // from device to host
 	else
-		io_prep_pread(req->iocb, ep, buf, length, 0);  // from host to device
+		io_prep_pread(&(req->iocb), ep, buf, length, 0);  // from host to device
 
-	io_set_eventfd(iocb, event_fd);
+	io_set_eventfd(&(req->iocb), event_fd);
 
 	req->request_complete_cb  = cb;
 	req->buf = buf;
@@ -222,6 +221,8 @@ void init_request(struct aio_request *req, int usb_dir, int ep, int event_fd, un
 }
 
 int submit_request(io_context_t *ctx, struct aio_request *req) {
+
+/*
 	int ret;
 	
 	req->iocb->u.c.nbytes = req->length;
@@ -230,6 +231,8 @@ int submit_request(io_context_t *ctx, struct aio_request *req) {
 	if(ret < 0)
 		return ret;
 	req->status = FFS_REQ_IN_PROGRESS;
+
+*/
 }
 
 /*Intialize a transfer object*/
@@ -242,31 +245,25 @@ struct transfer *alloc_transfer(){
 	
 	trans->len_req = alloc_request();
 	trans->buf_req = alloc_request();
-	trans->progress = 0;
+	trans->in_progress = 0;
 out:
 	return trans;
 
 }
 
-void inti_tranfer() {
-	struct transfer *in;
-	struct transfer *out;
+struct transfer *inti_transfer(int ep, int usb_dir, int event_fd, io_context_t *ctx, void (*cb)(struct aio_request *)) {
+	struct transfer *transf;
 
-	in = alloc_transfer();
-	if(!in)
-		goto out:
-	out = alloc_transfer();
+	transf = alloc_transfer();
+	if(!transf)
+		goto out;
 
-	/*For in transfer i.e host to device*/
-	init_request();
-	init_request();
+	init_request(transf->len_req , usb_dir, ep, event_fd, (unsigned char *)&transf->message.length, 2, cb);
+	init_request(transf->buf_req , usb_dir, ep, event_fd, (unsigned char *)&transf->message.line_buf, 0, cb);
 
-	/*from out transfer i.e from device to host*/
-	init_request();
-	init_request();
-		
+	transf->ctx = ctx;
 out:
-	return 0;
+	return transf;
 }
 
 
