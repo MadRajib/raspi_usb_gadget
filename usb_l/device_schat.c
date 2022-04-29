@@ -178,8 +178,16 @@ struct aio_request
 	void (*request_complete_cb)(struct aio_request *);
 };
 
+struct transfer {
+	struct aio_request *len_req;
+	struct aio_request *buf_req;
+	struct message msg;
+	int in_progress;
+	io_context_t *ctx;
+};
+
 /*alocate memory for a request object*/
-struct aio_request *init_request() {
+struct aio_request *alloc_request() {
 	struct aio_request *req;
 	req = malloc(sizeof(struct aio_request));
 	if (!req)
@@ -196,7 +204,7 @@ void delete_request(struct aio_request *req) {
 }
 
 /* fill a request obj with details*/
-void fill_request(struct aio_request *req, int usb_dir, int ep, int event_fd, unsigned char *buf, int length,
+void init_request(struct aio_request *req, int usb_dir, int ep, int event_fd, unsigned char *buf, int length,
 	void (*request_complete_cb)(struct aio_request *) cb) {
 
 	/* aio request wrappers*/
@@ -223,6 +231,44 @@ int submit_request(io_context_t *ctx, struct aio_request *req) {
 		return ret;
 	req->status = FFS_REQ_IN_PROGRESS;
 }
+
+/*Intialize a transfer object*/
+struct transfer *alloc_transfer(){
+	struct transfer *trans;
+	trans = malloc(sizeof(struct transfer));
+	if(!trans)
+		goto out;
+	memset(trans, 0, sizeof(struct transfer));
+	
+	trans->len_req = alloc_request();
+	trans->buf_req = alloc_request();
+	trans->progress = 0;
+out:
+	return trans;
+
+}
+
+void inti_tranfer() {
+	struct transfer *in;
+	struct transfer *out;
+
+	in = alloc_transfer();
+	if(!in)
+		goto out:
+	out = alloc_transfer();
+
+	/*For in transfer i.e host to device*/
+	init_request();
+	init_request();
+
+	/*from out transfer i.e from device to host*/
+	init_request();
+	init_request();
+		
+out:
+	return 0;
+}
+
 
 /* 
  * Prepare fresh ffs instance 
