@@ -1,0 +1,28 @@
+#!/bin/bash
+
+
+modprobe libcomposite
+
+G1="/sys/kernel/config/usb_gadget/g1"
+
+MANUFACTURER="Some Company"
+SERIAL="Frosted Flakes"
+IDPRODUCT="0xa4ac"
+IDVENDOR="0x0525"
+
+mkdir $G1
+mkdir $G1/strings/0x409
+mkdir $G1/functions/ffs.usb
+mkdir $G1/configs/c.1
+mkdir $G1/configs/c.1/strings/0x409
+
+echo $IDVENDOR  > $G1/idVendor
+echo $IDPRODUCT > $G1/idProduct
+echo $SERIAL > $G1/strings/0x409/serialnumber
+echo MANUFACTURER > $G1/strings/0x409/manufacturer
+echo PRODUCT > $G1/strings/0x409/product
+echo "usb_dun" > $G1/configs/c.1/strings/0x409/configuration
+ln -s $G1/functions/ffs.usb $G1/configs/c.1
+
+mkdir /dev/ffs-usb
+mount -t functionfs usb /dev/ffs-usb
