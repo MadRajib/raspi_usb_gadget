@@ -80,7 +80,6 @@ root@pi-hole:/home/pi/raspi_usb_gadget/usb_l# cd "${CONFIGFS_ROOT}"/usb_gadget
 root@pi-hole:/sys/kernel/config/usb_gadget# mkdir g1
 root@pi-hole:/sys/kernel/config/usb_gadget# cd g1
 root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo 0xa4ac > idVendor
-root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo ^C
 root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo 0x0525 > idProduct
 root@pi-hole:/sys/kernel/config/usb_gadget/g1# mkdir strings/0x409
 root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo "some Company" > strings/0x409/manufacturer
@@ -92,6 +91,7 @@ root@pi-hole:/sys/kernel/config/usb_gadget/g1# mkdir functions/ffs.usb
 root@pi-hole:/sys/kernel/config/usb_gadget/g1# ln -s functions/ffs.usb configs/c.1
 root@pi-hole:/sys/kernel/config/usb_gadget/g1# mkdir /dev/ffs-usb
 root@pi-hole:/sys/kernel/config/usb_gadget/g1# mount -t functionfs usb /dev/ffs-usb
+## run app with the usb node, then run the binding
 root@pi-hole:/sys/kernel/config/usb_gadget/g1# ls /sys/class/udc > UDC
 
 ```
