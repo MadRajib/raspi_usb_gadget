@@ -74,6 +74,27 @@ lsusb -v
 ```
 
 ## Setp by step in device
+```bash
+root@pi-hole:/home/pi/raspi_usb_gadget/usb_l# modprobe libcomposite
+root@pi-hole:/home/pi/raspi_usb_gadget/usb_l# cd "${CONFIGFS_ROOT}"/usb_gadget
+root@pi-hole:/sys/kernel/config/usb_gadget# mkdir g1
+root@pi-hole:/sys/kernel/config/usb_gadget# cd g1
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo 0xa4ac > idVendor
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo ^C
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo 0x0525 > idProduct
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# mkdir strings/0x409
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo "some Company" > strings/0x409/manufacturer
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo "frosted Flakes" > strings/0x409/product
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# mkdir configs/c.1
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# mkdir configs/c.1/strings/0x409
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# echo "usb_dun" > configs/c.1/strings/0x409/configuration
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# mkdir functions/ffs.usb
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# ln -s functions/ffs.usb configs/c.1
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# mkdir /dev/ffs-usb
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# mount -t functionfs usb /dev/ffs-usb
+root@pi-hole:/sys/kernel/config/usb_gadget/g1# ls /sys/class/udc > UDC
+
+```
 
 ## The Usage Pattern:
 1. The user creates a separate directory per each gadget they want to have.
