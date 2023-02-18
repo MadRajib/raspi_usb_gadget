@@ -119,3 +119,51 @@ echo 12480000.hsotg > UDC # ls /sys/class/udc to see available UDCs
 7. The gadget then becomes bound to this particular UDC (and the UDC cannot be used by more than one gadget).
 8. Available UDC names are in /sys/class/udc. 
 9. Only after a gadget is bound to a UDC can it be successfully enumerated by the USB host. 
+10. If the devices is connected to usb host, we can see the following logs in dmesg:
+```bash
+usb 3-1.2.1.4.4: New USB device found, idVendor=1d6b, idProduct=0104
+usb 3-1.2.1.4.4: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+usb 3-1.2.1.4.4: Product: ECM
+usb 3-1.2.1.4.4: Manufacturer: Collabora
+cdc_ether 3-1.2.1.4.4:1.0 usb0: register 'cdc_ether' at usb-0000:3c:00.0-1.2.1.4.4, CDC Ethernet Device, d2:c2:2d:b7:8e:6b
+```
+> Note the Product and Manufacturer strings which are exactly what has been written to configfs.
+11. A new host should appear at the host side ..
+```bash
+ifconfig -a
+
+usb0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        ether d2:c2:2d:b7:8e:6b  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 1  bytes 90 (90.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+# why not configure it?
+ifconfig usb0 192.168.1.2 up
+```
+...and at the device
+```bash
+ifconfig -a
+
+usb0: flags=4098<BROADCAST,MULTICAST>  mtu 1500
+        ether f2:40:e6:d3:01:2c  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+# why not configure this one as well?
+ifconfig usb0 192.168.1.3 up
+
+# and ping the host?
+ping 192.168.1.2
+PING 192.168.1.2 (192.168.1.2) 56(84) bytes of data.
+64 bytes from 192.168.1.2: icmp_seq=1 ttl=64 time=1.40 ms
+```
+Similarly, the device can be pinged from the host:
+```bash
+ping 192.168.1.3
+PING 192.168.1.3 (192.168.1.3) 56(84) bytes of data.
+64 bytes from 192.168.1.3: icmp_seq=1 ttl=64 time=1.06 ms
+```
