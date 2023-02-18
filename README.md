@@ -167,3 +167,87 @@ ping 192.168.1.3
 PING 192.168.1.3 (192.168.1.3) 56(84) bytes of data.
 64 bytes from 192.168.1.3: icmp_seq=1 ttl=64 time=1.06 ms
 ```
+
+## Making the gadget creation using schemas
+
+* Poking around configfs is not difficult, but you need to know where to look, what to look for, what kind of directories to create and what values to write to particular files. And what to symlink from where.  
+* Creating a gadget containing just one function takes about 15-20 shell commands, which of course can be scripted. But it seems not a very nice approach.  
+* We can instead use an opensource tool called gt (https://github.com/kopasiak/gt) (requires https://github.com/libusbgx/libusbgx), which supports so called gadget schemes: instead of describing creating of your gadget procedurally (explicit shell commands) you describe it declaratively in a configuration file and the tool knows how to parse the file and do all the necessary configfs manipulation.  
+* This way modprobe g_ether can be changed to gt load my_ether.scheme, which is a very comparable amount of work :)
+
+### The scheme  
+A scheme corresponding to the above gadget is like this (let's call it ecm.scheme):
+```bash
+attrs : 
+{
+    idVendor = 0x1D6B;
+    idProduct = 0x104;
+};
+strings = (
+        {
+                lang = 0x409;
+                manufacturer = "Collabora";
+                product = "ECM";
+        }
+);
+functions : 
+{
+    ecm_usb0 : 
+    {
+        instance = "usb0";
+        type = "ecm";
+    };
+};
+configs = ( 
+    {
+        id = 1;
+        name = "c";
+        functions = ( 
+            {
+                name = "ecm.usb0";
+                function = "ecm_usb0";
+            } );
+    } );
+
+```
+Now at the device side you can simply:
+```bash
+gt load ecm.scheme g1 # load the scheme and name the gadget 'g1'
+```
+and achieve the same gadget composition as with the above shell commands.
+
+### And systemd?
+
+The event
+The obvious event triggering our gadget creation is the appearance of a UDC in the system. https://github.com/systemd/systemd/issues/11587 points to a pull request, which adds a new udev rule for systemd:
+```bash
+SUBSYSTEM=="udc", ACTION=="add", TAG+="systemd", ENV{SYSTEMD_WANTS}+="usb-gadget.target"
+```
+The rule triggers reaching the usb-gadget.target, whose purpose is to mark the point when UDC is available and allow other units depend on it:
+```bash
+[Unit]
+Description=Hardware activated USB gadget
+Documentation=man:systemd.special(7)
+The service
+Now that we have a target to depend on, we can create a service which will be started once the target is reached. Let's call it usb-gadget.service.
+
+[Unit]
+Description=Load USB gadget scheme
+Requires=sys-kernel-config.mount
+After=sys-kernel-config.mount
+
+[Service]
+ExecStart=/bin/gt load ecm.scheme ecm
+RemainAfterExit=yes
+ExecStop=/bin/gt rm -rf ecm
+Type=simple
+
+[Install]
+WantedBy=usb-gadget.target
+Such a service can be controlled with systemctl:
+
+systemctl enable usb-gadget.service
+systemctl disable usb-gadget.service
+```
+This way the usb-gadget.target can be reached with or without actually composing the gadget, or a different gadget can be chosen by the system administrator for each purpose.
+
